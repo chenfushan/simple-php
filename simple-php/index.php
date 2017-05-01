@@ -2,7 +2,7 @@
 	if (!isset($_SESSION)) {
 		session_start();
 	}
-
+	require_once dirname(__FILE__).'/DbConfig.php';
 	$controller_dir = dirname(__FILE__).'/Controller/';
 	if (is_dir($controller_dir)) {
 	    if ($dh = opendir($controller_dir)) {
@@ -43,7 +43,7 @@
 	}
 
 	//get the request url, get the controller and action
-	// Log::infoLog("receive request", __FILE__, __LINE__);
+	// Log::infoLog("receive request");
 	$request = $_SERVER['REQUEST_URI'];
 	$request = getController($request);
 	//get the post data
@@ -52,15 +52,15 @@
 	$content = getParameters($content);
 	//class must exist
 	if (!class_exists($request['class'])) {
-		// Log::errorLog("can not find the class =".$request['class'], __FILE__, __LINE__);
+		// Log::errorLog("can not find the class =".$request['class']);
 		exit(json_encode(array('result' => false, 'data' =>"can not find the class = ".$request['class'], 'err_code' => 404),JSON_UNESCAPED_UNICODE));
 	}
 	//method must exist
 	if (!method_exists(new $request['class'](), $request['method'])) {
-		// Log::errorLog("can not find the method =".$request['method'], __FILE__, __LINE__);
+		// Log::errorLog("can not find the method =".$request['method']);
 		exit(json_encode(array('result' => false, 'data' =>"can not find the method, method = ". $request['method'], 'err_code' => 404),JSON_UNESCAPED_UNICODE));
 	}
-	// Log::infoLog("start invoke method, class=".$request['class'].", method = ".$request['method'], __FILE__, __LINE__);
+	// Log::infoLog("start invoke method, class=".$request['class'].", method = ".$request['method']);
 	// get the reflection method object
 	$refMethod = new ReflectionMethod($request['class'],  $request['method']); 
     $params = $refMethod->getParameters(); 
@@ -69,6 +69,7 @@
     foreach($refMethod->getParameters() as $param) 
     { 
       /* @var $param ReflectionParameter */ 
+
       if(isset($content[$param->getName()])) 
       { 
         $pass[] = $content[$param->getName()]; 
@@ -78,9 +79,8 @@
      	if ($param->isOptional()) {
      		$pass[] = $param->getDefaultValue(); 
      	}else{
-     		// Log::errorLog("the param can not be empty, param: ".$param->getName().", method: ".$request['method'], __FILE__, __LINE__);
-			ajaxReturn(json_encode(array('result' => false, 'data' =>"the param can not be empty : ".$param->getName(), 'err_code' => 404),JSON_UNESCAPED_UNICODE));
-			exit;
+     		// Log::errorLog("the param can not be empty, param: ".$param->getName().", method: ".$request['method']);
+			exit(json_encode(array('result' => false, 'data' =>"the param can not be empty : ".$param->getName(), 'err_code' => 404),JSON_UNESCAPED_UNICODE));
      	}
         
       }

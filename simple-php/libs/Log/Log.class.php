@@ -81,7 +81,7 @@
 		    	$file = end(explode('/', $callerInfo[0]['file']));
 		    	$line = $callerInfo[0]['line'];
 		    }
-			$log_con = Log::setContent($file, $line, $content, "[ ErrorLog ]");
+			$log_con = Log::setContent($content, $file, $line, "[ ErrorLog ]");
 			fwrite($log_file, $log_con);
 			return Log::closeFile($log_file);
 		}
@@ -99,7 +99,7 @@
 		    	$file = end(explode('/', $callerInfo[0]['file']));
 		    	$line = $callerInfo[0]['line'];
 		    }
-			$log_con = Log::setContent($file, $line, $content, "[ WarnLog ]");
+			$log_con = Log::setContent($content, $file, $line, "[ WarnLog ]");
 			fwrite($log_file, $log_con);
 			return Log::closeFile($log_file);
 		}
