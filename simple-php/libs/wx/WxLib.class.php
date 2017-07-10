@@ -20,14 +20,36 @@
 		 * @param  string $openid the openid get from wx
 		 * @return bool          if success return true, else return false
 		 */
-		public function getOpenid($code, &$openid)
+		public static function getOpenid($code, &$openid)
 		{
 			global $WxConfig;
 			$url = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=". $WxConfig['appid'] ."&secret=". $WxConfig['secret'] ."&code=" . $code . "&grant_type=authorization_code";
-			$data = json_decode(file_get_contents($url1), true);
+			$data = json_decode(file_get_contents($url), true);
 			if (isset($data['errcode'])) {
 				return false;
 			}
+			$openid = $data['openid'];
+			return true;
+		}
+
+		/**
+		 * mini program get openid interface
+		 * @param  string $code         grant code get by client
+		 * @param  string &$openid      user openid
+		 * @param  string &$session_key session
+		 * @return bool               true/false
+		 */
+		public static function getOpenidMiniProgram($code, &$openid, &$session_key = "")
+		{
+			global $WxConfig;
+			$url = "https://api.weixin.qq.com/sns/jscode2session?appid=". $WxConfig['appid'] ."&secret=". $WxConfig['secret'] ."&js_code=".$code."&grant_type=authorization_code";
+			$data = json_decode(file_get_contents($url), true);
+			if (isset($data['errcode'])) {
+				return false;
+			}
+
+			$openid = $data['openid'];
+			$session_key = $data['session_key'];
 			return true;
 		}
 
