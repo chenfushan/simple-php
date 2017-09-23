@@ -2,23 +2,24 @@
 	if (!isset($_SESSION)) {
 		session_start();
 	}
-	require_once dirname(__FILE__).'/DbConfig.php';
+	//require controllers
+	require_once dirname(__FILE__).'/libs/Log/Log.class.php';
 	$controller_dir = dirname(__FILE__).'/Controller/';
 	if (is_dir($controller_dir)) {
 	    if ($dh = opendir($controller_dir)) {
 	        while (($file = readdir($dh)) !== false) {
 	        	if (preg_match('/[^.]+Controller\.class\.php/i', $file, $matchs)) {
 	        		require_once $controller_dir.$file;
-	        		// echo $controller_dir.$file.PHP_EOL;
 	        	}
 	            
 	        }
 	        closedir($dh);
 	    }
 	}else{
-		exit(json_encode(array('result' => false, 'data' =>"can not find the controller dir = ".$controller_dir, 'err_code' => 404),JSON_UNESCAPED_UNICODE));
+		exit(json_encode(array('result' => false, 'data' =>"Can not find the controller dir = ".$controller_dir, 'err_code' => 404),JSON_UNESCAPED_UNICODE));
 	}
 
+	//get class and method
 	function getController($path)
 	{
 		$path_kv = explode("/", $path);
@@ -28,6 +29,7 @@
 		return $path_res;
 	}
 
+	//get parameters split by '='
 	function getParameters($params)
 	{
 		$params_res = array();
@@ -41,18 +43,72 @@
 		}
 		return $params_res;
 	}
+	//split request and request parameters
+	function splitRequest($request)
+	{
+		$request = urldecode($request);
+		$split_request = array();
+		$request_elements = explode("?", $request);
 
-	//get the request url, get the controller and action
-	// Log::infoLog("receive request");
+		if (count($request_elements) == 1) {
+			$split_request['request'] = $request_elements[0];
+			$split_request['params'] = "";
+			return $split_request;
+		}else if (count($request_elements) == 2) {
+			$split_request['request'] = $request_elements[0];
+			$split_request['params'] = $request_elements[1];
+			return $split_request;
+		}else{
+			return $split_request;
+		}
+	}
+
+	Log::infoLog("receive request");
+
+	//get the request url,and params in url
 	$request = $_SERVER['REQUEST_URI'];
+
+	$split_request = array();
+	$request_params = array();
+	$split_request = splitRequest($request);
+
+	if (count($split_request) != 0) {
+		$request = $split_request['request'];
+		$request_params_str = $split_request['params'];
+		$request_params = getParameters($request_params_str);
+	}
+	//get the request method : /GET /POST /PUT /DELTE
+	$request_method = $_SERVER['REQUEST_METHOD'];
+	Log::infoLog("Method : ".$request_method);
+
+	if ($request_method == 'GET') {
+		$content = $request_params;
+	}elseif ($request_method == 'POST') {
+		$content = file_get_contents("php://input");
+		if (isset($_SERVER['CONTENT_TYPE'])) {
+			$request_content_type = $_SERVER['CONTENT_TYPE'];
+			// Log::infoLog("Content-Type : ".$request_content_type);
+			if ($request_content_type == "application/x-www-form-urlencoded") {
+				$content = urldecode($content);
+				$content = getParameters($content);
+			}elseif ($request_content_type == "application/json") {
+				$content = json_decode($content, true);
+			}
+		}else{
+			Log::warnLog("Content-type is not exist");
+			$content = getParameters($content);
+		}
+	}
+
+	// Log::infoLog("========== SERVER ARRAY ===============");
+	// Log::infoLog($_SERVER);
+	// Log::infoLog("========== SERVER ARRAY ===============");
+	
 	$request = getController($request);
-	//get the post data
-	$content = file_get_contents("php://input");
-	$content = urldecode($content);
-	$content = getParameters($content);
+
 	//class must exist
 	if (!class_exists($request['class'])) {
-		// Log::errorLog("can not find the class =".$request['class']);
+		Log::errorLog("Can not find the class = ".$request['class']);
 		exit(json_encode(array('result' => false, 'data' =>"can not find the class = ".$request['class'], 'err_code' => 404),JSON_UNESCAPED_UNICODE));
 	}
 	//method must exist
@@ -60,7 +116,7 @@
 		// Log::errorLog("can not find the method =".$request['method']);
 		exit(json_encode(array('result' => false, 'data' =>"can not find the method, method = ". $request['method'], 'err_code' => 404),JSON_UNESCAPED_UNICODE));
 	}
-	// Log::infoLog("start invoke method, class=".$request['class'].", method = ".$request['method']);
+	Log::infoLog("Start invoke method: class = ".$request['class'].", method = ".$request['method']);
 	// get the reflection method object
 	$refMethod = new ReflectionMethod($request['class'],  $request['method']); 
     $params = $refMethod->getParameters(); 
@@ -68,8 +124,7 @@
     $pass = array();
     foreach($refMethod->getParameters() as $param) 
     { 
-      /* @var $param ReflectionParameter */ 
-
+      // @var $param ReflectionParameter 
       if(isset($content[$param->getName()])) 
       { 
         $pass[] = $content[$param->getName()]; 
@@ -79,13 +134,12 @@
      	if ($param->isOptional()) {
      		$pass[] = $param->getDefaultValue(); 
      	}else{
-     		// Log::errorLog("the param can not be empty, param: ".$param->getName().", method: ".$request['method']);
-			exit(json_encode(array('result' => false, 'data' =>"the param can not be empty : ".$param->getName(), 'err_code' => 404),JSON_UNESCAPED_UNICODE));
+     		Log::errorLog("The param can not be empty: param: ".$param->getName().", method: ".$request['method']);
+			exit(json_encode(array('result' => false, 'data' =>"The param can not be empty : ".$param->getName(), 'err_code' => 404),JSON_UNESCAPED_UNICODE));
      	}
         
       }
     } 
 
     $refMethod->invokeArgs(new $request['class'](),(array)$pass);
-    
  ?>

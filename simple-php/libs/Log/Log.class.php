@@ -34,7 +34,7 @@
 		public static function infoLog($content = "")
 		{
 			if(is_array($content)){
-				$content = implode(',', $content);
+				$content = json_encode($content);
 			}
 			$log_file = Log::setFilePath();
 			if (!$log_file) {
@@ -52,7 +52,7 @@
 		public static function debugLog($content = "")
 		{
 			if(is_array($content)){
-				$content = implode(',', $content);
+				$content = json_encode($content);
 			}
 			$log_file = Log::setFilePath();
 			if (!$log_file) {
@@ -70,7 +70,7 @@
 		public static function errorLog($content = "")
 		{
 			if(is_array($content)){
-				$content = implode(',', $content);
+				$content = json_encode($content);
 			}
 			$log_file = Log::setFilePath();
 			if (!$log_file) {
@@ -88,7 +88,7 @@
 		public static function warnLog($content = "")
 		{
 			if(is_array($content)){
-				$content = implode(',', $content);
+				$content = json_encode($content);
 			}
 			$log_file = Log::setFilePath();
 			if (!$log_file) {
