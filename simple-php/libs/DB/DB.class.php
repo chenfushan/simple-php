@@ -19,7 +19,7 @@
 			self::$mysqli->set_charset('utf8');
 			/* check connection */
 			if (self::$mysqli->connect_errno) {
-			    Log::errorLog("Connect DB failed: .".$mysqli->connect_error);
+			    Log::errorLog("Connect DB failed: .".self::$mysqli->connect_error);
 			    exit();
 			}
 		}
@@ -101,7 +101,7 @@
 			// Log::debugLog("exec the query: ".$query);
 			$res = self::$mysqli->query($query);
 			if (!$res) {
-				Log::errorLog("execute sql error: ".$mysqli->error ." ". $mysqli->errno);
+				Log::errorLog("execute sql error: ".self::$mysqli->error ." ". self::$mysqli->errno);
 				Log::errorLog($query);
 				$errno = self::$mysqli->errno;
 				$this->errno = $errno;

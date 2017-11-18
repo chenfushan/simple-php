@@ -11,6 +11,16 @@
 			$log_file = fopen(LOCAL_LOGPATH, "a+");
 			return $log_file;
 		}
+		public static function setAccessPath()
+		{
+			$log_file = fopen(ACCESS_LOGPATH, "a+");
+			return $log_file;
+		}
+		public static function setErrorPath()
+		{
+			$log_file = fopen(ERROR_LOGPATH, "a+");
+			return $log_file;
+		}
 		public static function setContent($content, $file="", $line="", $log_level="")
 		{
 			date_default_timezone_set('Asia/Shanghai');
@@ -76,6 +86,10 @@
 			if (!$log_file) {
 				return false;
 			}
+			$common_file = Log::setErrorPath();
+			if (!$common_file) {
+				return false;
+			}
 			$callerInfo =debug_backtrace();
 		    if (isset($callerInfo[0])) {
 		    	$file = end(explode('/', $callerInfo[0]['file']));
@@ -83,6 +97,8 @@
 		    }
 			$log_con = Log::setContent($content, $file, $line, "[ ErrorLog ]");
 			fwrite($log_file, $log_con);
+			fwrite($common_file, $log_con);
+			Log::closeFile($common_file);
 			return Log::closeFile($log_file);
 		}
 		public static function warnLog($content = "")
@@ -100,6 +116,29 @@
 		    	$line = $callerInfo[0]['line'];
 		    }
 			$log_con = Log::setContent($content, $file, $line, "[ WarnLog ]");
+			fwrite($log_file, $log_con);
+			return Log::closeFile($log_file);
+		}
+		/**
+		 * simple php receive request log
+		 * @param  string $content log content
+		 * @return [type]          [description]
+		 */
+		public static function accessLog($content = "")
+		{
+			if (is_array($content)) {
+				$content = json_encode($content);
+			}
+			$log_file = Log::setAccessPath();
+			if (!$log_file) {
+				return false;
+			}
+			$callerInfo = debug_backtrace();
+			if (isset($callerInfo[0])) {
+				$file = end(explode('/', $callerInfo[0]['file']));
+				$line = $callerInfo[0]['line'];
+			}
+			$log_con = Log::setContent($content, $file, $line, '[ AccessLog ]');
 			fwrite($log_file, $log_con);
 			return Log::closeFile($log_file);
 		}
