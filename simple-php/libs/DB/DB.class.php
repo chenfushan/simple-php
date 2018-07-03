@@ -38,7 +38,7 @@
 			self::$mysqli->set_charset('utf8');
 			/* check connection */
 			if (self::$mysqli->connect_errno) {
-			    // Log::errorLog("Connect DB failed: .".$mysqli->connect_error);
+			    Log::errorLog("Connect DB failed: .".self::$mysqli->connect_error);
 			    return false;
 			}
 			return true;
@@ -88,6 +88,81 @@
 		{
 			$query_res->free();
 			return 0;
+		}
+
+		/**
+		 * lock rows
+		 * @return [type]      [description]
+		 */
+		public function startTrans()
+		{
+			if (!self::$mysqli->query('BEGIN')) {
+		 	 	Log::errorLog("start transaction error: ".self::$mysqli->error ." ". self::$mysqli->errno);
+		 	 	return false;
+		 	 }
+		 	return true;
+		}
+
+		/**
+		 * release rows
+		 * @return [type] [description]
+		 */
+		public function commitTrans()
+		{
+		 	$res = self::$mysqli->query('COMMIT');
+		 	if (!$res) {
+		 		Log::errorLog("execute sql error: ".self::$mysqli->error ." ". self::$mysqli->errno);
+		 		return false;
+		 	}
+		 	return true;
+		}
+
+		/**
+		 * rollback transaction
+		 * @return [type] [description]
+		 */
+		public function rollbackTrans()
+		{
+			$res = self::$mysqli->query('ROLLBACK');
+		 	if (!$res) {
+		 		Log::errorLog("execute sql error: ".self::$mysqli->error ." ". self::$mysqli->errno);
+		 		return false;
+		 	}
+		 	return true;
+		}
+
+		/**
+		 * transaction for db
+		 * @param  [type] &$result  [description]
+		 * @param  [type] $callback [description]
+		 * @return [type]           [description]
+		 */
+		public static function transaction(&$result, $callback)
+		{
+			$result = ['success'=>true, 'data'=>'', 'code'=>0];
+			try {
+				$res = self::startTrans();
+				if (!$res) {
+					self::rollbackTrans();
+				}
+
+				if (!is_callable($callback)) {
+					throw new Exception('callback func is not callable', -1);
+				}else{
+					call_user_func($callback);
+				}
+				$res = self::commitTrans();
+				if (!$res) {
+					throw new Exception('commit trans error', -101);
+					self::rollbackTrans();
+				}
+			} catch (Exception $e) {
+				self::rollbackTrans();
+				Log::exceptionLog($e);
+				$result['success'] = false;
+				$result['data'] = $e->getMessage();
+				$result['code'] = $e->getCode();
+			}
 		}
 
 		/**
@@ -148,7 +223,7 @@
 			foreach ($sqls as $sql) {
 				$res = self::$mysqli->query($sql);
 				if (!$res) {
-					Log::errorLog("execute sql error: ".$mysqli->error ." ". $mysqli->errno);
+					Log::errorLog("execute sql error: ".self::$mysqli->error ." ". self::$mysqli->errno);
 					Log::errorLog($query);
 					$errno = self::$mysqli->errno;
 					$this->errno = $errno;

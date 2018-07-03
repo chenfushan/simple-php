@@ -2,7 +2,10 @@
 	require_once dirname(__FILE__).'/LogConfig.php';
 
 	/**
-	* log for caca
+	* log for simple php
+	*
+	* import  : require_once './Log.class.php';
+	* Use     : Log::infoLog("here is log message");
 	*/
 	class Log
 	{
@@ -19,6 +22,11 @@
 		public static function setErrorPath()
 		{
 			$log_file = fopen(ERROR_LOGPATH, "a+");
+			return $log_file;
+		}
+		public static function setExceptionPath()
+		{
+			$log_file = fopen(EXCEPTION_LOGPATH, "a+");
 			return $log_file;
 		}
 		public static function setContent($content, $file="", $line="", $log_level="")
@@ -140,6 +148,33 @@
 			}
 			$log_con = Log::setContent($content, $file, $line, '[ AccessLog ]');
 			fwrite($log_file, $log_con);
+			return Log::closeFile($log_file);
+		}
+
+		/**
+		 * log for exception
+		 * @param  Exception $exception [description]
+		 * @return [type]               [description]
+		 */
+		public static function exceptionLog(Exception $exception)
+		{
+			$log_file = Log::setFilePath();
+			if (!$log_file) {
+				return false;
+			}
+			$exception_file = Log::setExceptionPath();
+			if (!$exception_file) {
+				return false;
+			}
+			$msg = $exception->getMessage();
+			$trace = json_encode($exception->getTrace());
+			$file = $exception->getFile();
+			$line = $exception->getLine();
+			$code = $exception->getCode();
+			$log_con = Log::setContent('code: '.$code.', msg: '.$msg.', trace:'.$trace, $file, $line, '[ Exception Log ]');
+			fwrite($log_file, $log_con);
+			fwrite($exception_file, $log_con);
+			Log::closeFile($exception_file);
 			return Log::closeFile($log_file);
 		}
 	}

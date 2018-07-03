@@ -1,9 +1,10 @@
 <?php 
+	require_once dirname(__FILE__).'/libs/Log/Log.class.php';
 	if (!isset($_SESSION)) {
 		session_start();
+		Log::accessLog("start accessId : ".session_id());
 	}
 	//require controllers
-	require_once dirname(__FILE__).'/libs/Log/Log.class.php';
 	$controller_dir = dirname(__FILE__).'/Controller/';
 	if (is_dir($controller_dir)) {
 	    if ($dh = opendir($controller_dir)) {
@@ -17,6 +18,26 @@
 	    }
 	}else{
 		exit(json_encode(array('result' => false, 'data' =>"Can not find the controller dir = ".$controller_dir, 'err_code' => 404),JSON_UNESCAPED_UNICODE));
+	}
+
+	/**
+	 * 对象 转 数组
+	 *
+	 * @param object $obj 对象
+	 * @return array
+	 */
+	function object_to_array($obj) {
+	    $obj = (array)$obj;
+	    foreach ($obj as $k => $v) {
+	        if (gettype($v) == 'resource') {
+	            return;
+	        }
+	        if (gettype($v) == 'object' || gettype($v) == 'array') {
+	            $obj[$k] = (array)object_to_array($v);
+	        }
+	    }
+	 
+	    return $obj;
 	}
 
 	//get class and method
@@ -63,8 +84,6 @@
 		}
 	}
 
-	Log::infoLog("receive request");
-
 	//get the request url,and params in url
 	$request = $_SERVER['REQUEST_URI'];
 
@@ -79,7 +98,7 @@
 	}
 	//get the request method : /GET /POST /PUT /DELTE
 	$request_method = $_SERVER['REQUEST_METHOD'];
-	Log::infoLog("Method : ".$request_method);
+	// Log::infoLog("Method : ".$request_method);
 
 	if ($request_method == 'GET') {
 		$content = $request_params;
@@ -87,12 +106,20 @@
 		$content = file_get_contents("php://input");
 		if (isset($_SERVER['CONTENT_TYPE'])) {
 			$request_content_type = $_SERVER['CONTENT_TYPE'];
-			// Log::infoLog("Content-Type : ".$request_content_type);
+			Log::accessLog("Content-Type : ".$request_content_type);
 			if ($request_content_type == "application/x-www-form-urlencoded") {
 				$content = urldecode($content);
 				$content = getParameters($content);
 			}elseif ($request_content_type == "application/json") {
 				$content = json_decode($content, true);
+			}elseif ($request_content_type == "text/xml") {
+				if (isset($GLOBALS['HTTP_RAW_POST_DATA'])) {
+					$content = $GLOBALS['HTTP_RAW_POST_DATA'];
+					$postObj = simplexml_load_string($content, 'SimpleXMLElement', LIBXML_NOCDATA);
+					//if content is xml, then just use xml
+					$content = [];
+					$content['xml'] = object_to_array($postObj);
+				}
 			}
 		}else{
 			Log::warnLog("Content-type is not exist");
@@ -103,8 +130,12 @@
 	// Log::infoLog("========== SERVER ARRAY ===============");
 	// Log::infoLog($_SERVER);
 	// Log::infoLog("========== SERVER ARRAY ===============");
+	// 
 	
 	$request = getController($request);
+
+	Log::accessLog("Access Request. class : ".$request['class'].", method : " .$request['method']);
+	Log::accessLog($content);
 
 	//class must exist
 	if (!class_exists($request['class'])) {

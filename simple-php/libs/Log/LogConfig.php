@@ -7,6 +7,8 @@
 	//define the access log path
 	define("ACCESS_LOGPATH", dirname(__FILE__).'/../../Runtime/log/access_'.$time.'.log');
 	//define the common error log path
-	define('ERROR_LOGPATH', dirname(__FILE__).'/../../Runtime/log/error_'.$time.'.log');;
+	define('ERROR_LOGPATH', dirname(__FILE__).'/../../Runtime/log/error_'.$time.'.log');
+	//define the exception log path
+	define('EXCEPTION_LOGPATH', dirname(__FILE__).'/../../Runtime/log/exception_'.$time.'.log');
 	
  ?>
